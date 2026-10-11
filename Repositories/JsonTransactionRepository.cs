@@ -17,10 +17,16 @@ public class JsonTransactionRepository : ITransactionRepository
     // camelCase so the file matches the API's JSON; indented so it's readable.
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = true
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase, // matches the API's JSON
+        WriteIndented = true // makes it readable
     };
 
+    /// <summary>
+    /// Takes the IWebHostEnvironment to find the content root, then 
+    /// creates a Data folder if it doesn't exist and sets the file 
+    /// path to Data/transactions.json.
+    /// </summary>
+    /// <param name="environment"></param>
     public JsonTransactionRepository(IWebHostEnvironment environment)
     {
         var dataFolder = Path.Combine(environment.ContentRootPath, "Data");
@@ -28,6 +34,11 @@ public class JsonTransactionRepository : ITransactionRepository
         _filePath = Path.Combine(dataFolder, "transactions.json");
     }
 
+    /// <summary>
+    /// Gets all transactions.
+    /// </summary>
+    /// <param name="cancellationToken"></param>
+    /// <returns>Returns a list of all transactions.</returns>
     public async Task<IReadOnlyList<Transaction>> GetAllAsync(CancellationToken cancellationToken)
     {
         await _lock.WaitAsync(cancellationToken);
@@ -41,6 +52,12 @@ public class JsonTransactionRepository : ITransactionRepository
         }
     }
 
+    /// <summary>
+    /// Gets a transaction by its id.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns>Returns the transaction if found, otherwise null.</returns>
     public async Task<Transaction?> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
         await _lock.WaitAsync(cancellationToken);
@@ -55,6 +72,12 @@ public class JsonTransactionRepository : ITransactionRepository
         }
     }
 
+    /// <summary>
+    /// Adds a new transaction. The Id is assigned automatically, and CreatedAt is set to the current time.
+    /// </summary>
+    /// <param name="transaction"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns>Returns the added transaction.</returns>
     public async Task<Transaction> AddAsync(Transaction transaction, CancellationToken cancellationToken)
     {
         await _lock.WaitAsync(cancellationToken);
@@ -75,6 +98,15 @@ public class JsonTransactionRepository : ITransactionRepository
         }
     }
 
+    /// <summary>
+    /// Updates an existing transaction. 
+    /// The Id and CreatedAt fields are preserved from the stored record, 
+    /// and cannot be changed by the update.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="transaction"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns>Returns true if the transaction was updated, otherwise false.</returns>
     public async Task<bool> UpdateAsync(int id, Transaction transaction, CancellationToken cancellationToken)
     {
         await _lock.WaitAsync(cancellationToken);
@@ -101,6 +133,13 @@ public class JsonTransactionRepository : ITransactionRepository
         }
     }
 
+    /// <summary>
+    /// Deletes a transaction by its id. 
+    /// Returns true if the transaction was found and deleted, otherwise false.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns>Returns true if the transaction was found and deleted, otherwise false.</returns>
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken)
     {
         await _lock.WaitAsync(cancellationToken);
