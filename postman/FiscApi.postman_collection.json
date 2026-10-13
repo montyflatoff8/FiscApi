@@ -15,7 +15,7 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "const json = pm.response.json();\r\n\r\npm.test(\"Status is 201 Created\", () => {\r\n    pm.response.to.have.status(201);\r\n});\r\n\r\npm.test(\"Location header points to the new transaction\", () => {\r\n    const location = pm.response.headers.get(\"Location\");\r\n    pm.expect(location).to.include(`/api/transactions/${json.id}`);\r\n});\r\n\r\npm.test(\"Over-posting is ignored (server sets id and createdAt)\", () => {\r\n    pm.expect(json.id).to.not.eql(999);\r\n    pm.expect(json.createdAt).to.not.include(\"1999\");\r\n});\r\n\r\n// Save the server-assigned id so later requests can use {{transactionId}}.\r\npm.collectionVariables.set(\"transactionId\", json.id);"
+              "const json = pm.response.json();\r\n\r\npm.test(\"Status is 201 Created\", () => {\r\n    pm.response.to.have.status(201);\r\n});\r\n\r\npm.test(\"Location header points to the new transaction\", () => {\r\n    const location = pm.response.headers.get(\"Location\");\r\n    pm.expect(location).to.include(`/api/transactions/${json.id}`);\r\n});\r\n\r\npm.test(\"Over-posting is ignored (server sets id and createdAt)\", () => {\r\n    pm.expect(json.id).to.not.eql(999);\r\n    pm.expect(json.createdAt).to.not.include(\"1999\");\r\n});\r\n\r\n// Save the server-assigned id, but only when a transaction was actually created.\r\n// A 409 or 400 response has no \"id\", and saving it would overwrite transactionId with undefined.\r\nif (pm.response.code === 201) {\r\n    pm.collectionVariables.set(\"transactionId\", json.id);\r\n}"
             ]
           }
         }
@@ -1609,7 +1609,7 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"Status is 201 Created\", () => {\r\n    pm.response.to.have.status(201);\r\n});\r\n\r\n// Save this id for request 12 (the duplicate check) and request 13 (cleanup).\r\npm.collectionVariables.set(\"secondId\", pm.response.json().id);"
+              "pm.test(\"Status is 201 Created\", () => {\r\n    pm.response.to.have.status(201);\r\n});\r\n\r\n// Save this id for request 12 (duplicate check) and request 13 (cleanup), only on success.\r\nif (pm.response.code === 201) {\r\n    pm.collectionVariables.set(\"secondId\", pm.response.json().id);\r\n}"
             ]
           }
         }
