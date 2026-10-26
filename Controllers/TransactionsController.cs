@@ -1,5 +1,6 @@
 ﻿using FiscApi.DTOs;
 using FiscApi.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FiscApi.Controllers;
@@ -21,8 +22,10 @@ public class TransactionsController : ControllerBase
         _service = service;
     }
 
+
     // GET /api/transactions?type=Expense&category=Groceries  (both filters optional)
     [HttpGet]
+    [AllowAnonymous]
     [ProducesResponseType<IReadOnlyList<TransactionResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<TransactionResponse>>> GetAll(
         [FromQuery] string? type,
@@ -33,8 +36,10 @@ public class TransactionsController : ControllerBase
         return Ok(transactions);
     }
 
+
     // GET /api/transactions/5
     [HttpGet("{id:int}")]
+    [AllowAnonymous]
     [ProducesResponseType<TransactionResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TransactionResponse>> GetById(int id, CancellationToken cancellationToken)
@@ -43,10 +48,13 @@ public class TransactionsController : ControllerBase
         return transaction is null ? NotFound() : Ok(transaction);
     }
 
+
     // POST /api/transactions
     [HttpPost]
+    [Authorize("TransactionWrite")]
     [ProducesResponseType<TransactionResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<TransactionResponse>> Create(
         TransactionRequest request,
@@ -63,10 +71,13 @@ public class TransactionsController : ControllerBase
         };
     }
 
+
     // PUT /api/transactions/5
     [HttpPut("{id:int}")]
+    [Authorize("TransactionWrite")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Update(
@@ -85,9 +96,12 @@ public class TransactionsController : ControllerBase
         };
     }
 
+
     // DELETE /api/transactions/5
     [HttpDelete("{id:int}")]
+    [Authorize("TransactionWrite")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {

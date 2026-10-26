@@ -11,9 +11,13 @@ public class TransactionService : ITransactionService
 {
     private readonly ITransactionRepository _repository;
 
-    public TransactionService(ITransactionRepository repository)
+    // ILogger<T> is provided by DI automatically; T sets the log "category" (FiscApi.Services.TransactionService).
+    private readonly ILogger<TransactionService> _logger;
+
+    public TransactionService(ITransactionRepository repository, ILogger<TransactionService> logger)
     {
         _repository = repository;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyList<TransactionResponse>> GetAllAsync(
@@ -57,6 +61,7 @@ public class TransactionService : ITransactionService
         var existing = await _repository.GetAllAsync(cancellationToken);
         if (IsDuplicate(existing, transaction, excludeId: null))
         {
+            _logger.LogWarning("Create rejected: duplicate transaction on {Date:yyyy-MM-dd}", transaction.Date);
             return ServiceResult<TransactionResponse>.Duplicate();
         }
 
@@ -64,6 +69,9 @@ public class TransactionService : ITransactionService
         transaction.CreatedAt = DateTime.UtcNow;
 
         var saved = await _repository.AddAsync(transaction, cancellationToken);
+
+        // Ids and type only: descriptions/notes/amounts are the user's private financial data.
+        _logger.LogInformation("Created transaction {TransactionId} ({Type})", saved.Id, saved.Type);
         return ServiceResult<TransactionResponse>.Success(saved.ToResponse());
     }
 
@@ -75,6 +83,7 @@ public class TransactionService : ITransactionService
         // 404 takes priority over 409: you can't conflict with yourself if you don't exist.
         if (!existing.Any(t => t.Id == id))
         {
+            _logger.LogWarning("Update failed: transaction {TransactionId} not found", id);
             return ServiceOutcome.NotFound;
         }
 
@@ -84,17 +93,32 @@ public class TransactionService : ITransactionService
         // Exclude this transaction itself, so saving it unchanged isn't flagged as a duplicate.
         if (IsDuplicate(existing, transaction, excludeId: id))
         {
+            _logger.LogWarning("Update rejected: transaction {TransactionId} would duplicate another", id);
             return ServiceOutcome.Duplicate;
         }
 
         var updated = await _repository.UpdateAsync(id, transaction, cancellationToken);
-        return updated ? ServiceOutcome.Success : ServiceOutcome.NotFound;
+        if (!updated)
+        {
+            _logger.LogWarning("Update failed: transaction {TransactionId} not found", id);
+            return ServiceOutcome.NotFound;
+        }
+
+        _logger.LogInformation("Updated transaction {TransactionId}", id);
+        return ServiceOutcome.Success;
     }
 
     public async Task<ServiceOutcome> DeleteAsync(int id, CancellationToken cancellationToken)
     {
         var deleted = await _repository.DeleteAsync(id, cancellationToken);
-        return deleted ? ServiceOutcome.Success : ServiceOutcome.NotFound;
+        if (!deleted)
+        {
+            _logger.LogWarning("Delete failed: transaction {TransactionId} not found", id);
+            return ServiceOutcome.NotFound;
+        }
+
+        _logger.LogInformation("Deleted transaction {TransactionId}", id);
+        return ServiceOutcome.Success;
     }
 
     // ---- Business rules ----
