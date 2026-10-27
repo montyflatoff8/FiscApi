@@ -5,6 +5,7 @@ using FiscApi.Configuration;
 using FiscApi.Data;
 using FiscApi.Repositories;
 using FiscApi.Services;
+using FiscApi.Setup;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 using Microsoft.Data.SqlClient;
@@ -41,6 +42,13 @@ if (dataSourceOptions.Provider.Equals("SqlServer", StringComparison.OrdinalIgnor
     var connectionString = builder.Configuration.GetConnectionString("FiscApi")
         ?? throw new InvalidOperationException(
             "ConnectionStrings:FiscApi is required when DataSource:Provider is SqlServer. Set it with dotnet user-secrets (see README).");
+
+    // Development only: start Docker Desktop and the SQL container if they aren't running,
+    // so F5 / dotnet run is the only command you need. Turn off with DataSource:AutoStartDocker=false.
+    if (builder.Environment.IsDevelopment() && dataSourceOptions.AutoStartDocker)
+    {
+        DockerBootstrap.EnsureSqlContainer(builder.Environment.ContentRootPath);
+    }
 
     builder.Services.AddDbContext<FiscDbContext>(options =>
         options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure()));

@@ -11,6 +11,9 @@ public class DataSourceOptions
     // "Json" or "SqlServer".
     public string Provider { get; set; } = "Json";
 
+    // Development only: start Docker Desktop + "docker compose up -d --wait" before connecting.
+    public bool AutoStartDocker { get; set; } = true;
+
     // Development only: apply EF Core migrations at startup so the database and table exist.
     public bool MigrateOnStartup { get; set; } = true;
 }

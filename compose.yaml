@@ -2,6 +2,8 @@ services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2025-CU9-ubuntu-22.04
     container_name: fiscapi-sqlserver
+    # Start again automatically whenever Docker starts, unless you stopped it yourself.
+    restart: unless-stopped
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: "Developer"
